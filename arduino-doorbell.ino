@@ -1,5 +1,6 @@
+#include "Pitches.h"
+
 const uint8_t PIN_BUTTON = 11;
-const uint8_t PIN_BELL = 8;
 const unsigned long DEBOUNCE = 1000;
 unsigned long last_pressed = 0;
 
@@ -24,8 +25,26 @@ void setLED(LED led) {
   }
 }
 
+const uint8_t PIN_BELL = 8;
+struct Tone {
+  int Pitch;
+  int Duration;
+};
+const int MELODY_LEN = 8;
+const Tone MELODY[MELODY_LEN] = {
+  {NOTE_C4, 250},
+  {NOTE_G3, 125},
+  {NOTE_G3, 125},
+  {NOTE_A3, 250},
+  {NOTE_G3, 250},
+  {0, 250},
+  {NOTE_B3, 250},
+  {NOTE_C4, 250}
+};
+int note_current = 0;
+unsigned long note_updated = 0;
+
 void setup() {
-  // setup pin modes
   pinMode(PIN_BUTTON, INPUT);
   pinMode(PIN_LED_READY, OUTPUT);
   pinMode(PIN_LED_WAIT, OUTPUT);
@@ -33,12 +52,15 @@ void setup() {
 }
 
 void loop() {
-  if (/*millis() - last_pressed >= DEBOUNCE && */digitalRead(PIN_BUTTON)) {
+  if (millis() - last_pressed > DEBOUNCE && digitalRead(PIN_BUTTON)) {
     last_pressed = millis();
-    setLED(LED::Ready);
+    note_current = 0;
   }
-  else {
-    setLED(LED::Wait);
+
+  if (note_current < MELODY_LEN && millis() - note_updated > MELODY[note_current].Duration * 1.30) {
+    tone(PIN_BELL, MELODY[note_current].Pitch, MELODY[note_current].Duration);
+    note_updated = millis();
+    note_current++;
   }
 }
 
