@@ -1,35 +1,41 @@
 #include "Pitches.h"
 
 /*
-   Button
+   pins
 */
-const uint8_t PIN_BUTTON = 11;
+const uint8_t PIN_BELL = 8;
+const uint8_t PIN_BUTTON = 9;
+const uint8_t PIN_LED_READY = 10;
+const uint8_t PIN_LED_WAIT = 11;
+
+/*
+   button
+*/
 const unsigned long DEBOUNCE = 1000;
 unsigned long last_pressed = 0;
 
 /*
-   Anti spam waiting
+   anti-spam waiting
 */
 const unsigned long WAIT_TIME = 5000;
-// last_ring is set to WAIT_TIME to stop the doorbell from waiting at start up
-unsigned long last_ring = WAIT_TIME;
+unsigned long last_ring = 0;
 
 /*
    LED
 */
-const uint8_t PIN_LED_READY = 13;
-const uint8_t PIN_LED_WAIT = 12;
-enum LEDType {Off, Ready, Wait};
-LEDType led_type = LEDType::Off;
 unsigned long led_updated = 0;
-void setLED(LEDType type) {
-  switch (led_type = type)
+const unsigned long LED_ON_TIME = 1000;
+enum LEDMode {Off, Ready, Wait};
+LEDMode led_mode = LEDMode::Off;
+void setLEDMode(LEDMode mode) {
+  led_mode = mode;
+  switch (led_mode)
   {
     case Off:
       digitalWrite(PIN_LED_READY, LOW);
       digitalWrite(PIN_LED_WAIT, LOW);
       break;
-    case Ready  :
+    case Ready:
       digitalWrite(PIN_LED_READY, HIGH);
       digitalWrite(PIN_LED_WAIT, LOW);
       break;
@@ -40,12 +46,10 @@ void setLED(LEDType type) {
   }
   led_updated = millis();
 }
-const unsigned long LED_ON_TIME = 1000;
 
 /*
-   Bell
+   bell
 */
-const uint8_t PIN_BELL = 8;
 struct Tone {
   int Pitch;
   int Duration;
@@ -66,36 +70,36 @@ int note_current = MELODY_LEN;
 unsigned long note_updated = 0;
 
 /*
-   setup pin modes
+   setup pins
 */
 void setup() {
   pinMode(PIN_BUTTON, INPUT);
+  pinMode(PIN_BELL, OUTPUT);
   pinMode(PIN_LED_READY, OUTPUT);
   pinMode(PIN_LED_WAIT, OUTPUT);
-  pinMode(PIN_BELL, OUTPUT);
 }
 
 /*
    main update loop
 */
 void loop() {
-  // check button press
-  if (millis() - last_pressed > DEBOUNCE && digitalRead(PIN_BUTTON)) {
+  // is button press
+  if (digitalRead(PIN_BUTTON) && millis() - last_pressed > DEBOUNCE) {
     last_pressed = millis();
-    // check if person is being impatient
+    // is person is being impatient
     if (millis() - last_ring > WAIT_TIME) {
       last_ring = millis();
       // start bell by setting current note to the beginning.
       note_current = 0;
-      setLED(LEDType::Ready);
+      setLEDMode(LEDMode::Ready);
     } else {
-      setLED(LEDType::Wait);
+      setLEDMode(LEDMode::Wait);
     }
   }
 
   // turn off led after LED_ON_TIME
-  if (led_type != LEDType::Off && millis() - led_updated > LED_ON_TIME) {
-    setLED(LEDType::Off);
+  if (led_mode != LEDMode::Off && millis() - led_updated > LED_ON_TIME) {
+    setLEDMode(LEDMode::Off);
   }
 
   // update bell
